@@ -254,14 +254,19 @@ const DetailPage: React.FC = () => {
                     <p className="text-[#f68d1e] font-medium text-sm mb-1">{alum.designation}</p>
                     <p className="text-gray-500 text-sm mb-4">{alum.currentCompany}</p>
                     
-                    {/* New Data Display */}
-                    {(alum.year || alum.ctc) && (
-                      <div className="flex items-center gap-3 text-xs font-semibold text-gray-500 mb-4 bg-gray-50 px-3 py-1.5 rounded-full border border-gray-100">
-                        {alum.year && <span>Batch {alum.year}</span>}
-                        {alum.year && alum.ctc && <span className="w-1 h-1 bg-gray-300 rounded-full"></span>}
-                        {alum.ctc && <span className="text-green-600">{alum.ctc}</span>}
-                      </div>
-                    )}
+                    {/* New Data Display - Improved Aesthetics */}
+                    <div className="flex flex-wrap justify-center gap-2 mb-4">
+                      {alum.year && (
+                        <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-600 border border-gray-200">
+                          Batch {alum.year}
+                        </div>
+                      )}
+                      {alum.ctc && (
+                        <div className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-bold bg-green-50 text-green-700 border border-green-200">
+                          {alum.ctc}
+                        </div>
+                      )}
+                    </div>
 
                     {alum.linkedinProfile && (
                       <a 
