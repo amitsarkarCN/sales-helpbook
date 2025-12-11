@@ -2,8 +2,23 @@ import React from 'react';
 import Header from '../components/Header';
 import CategoryCard from '../components/CategoryCard';
 import { CATEGORIES } from '../constants';
+import { useData } from '../context/DataContext';
 
 const Dashboard: React.FC = () => {
+  const { loading } = useData();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-white flex flex-col font-sans">
+        <Header />
+        <div className="flex-grow flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f68d1e]"></div>
+          <p className="mt-4 text-gray-500 font-medium">Loading Helpbook...</p>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Header />

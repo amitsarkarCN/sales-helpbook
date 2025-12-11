@@ -8,7 +8,7 @@ import { useData } from '../context/DataContext';
 const DetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
-  const { brochures, certificates, faqs, alumni, testimonials, competitors, importantLinks, salesScripts, projects, emiPlans, handbookItems } = useData();
+  const { loading, brochures, certificates, faqs, alumni, testimonials, competitors, importantLinks, salesScripts, projects, emiPlans, handbookItems } = useData();
 
   // Handle special case for 'testimonials' which isn't in main CATEGORIES
   let category = CATEGORIES.find(c => c.id === id);
@@ -20,6 +20,18 @@ const DetailPage: React.FC = () => {
       description: 'Inspiring success stories from our alumni.',
       icon: Video
     };
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+        <Header showBack />
+        <div className="flex-grow flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f68d1e]"></div>
+          <p className="mt-4 text-gray-500 font-medium">Loading content...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!category) {

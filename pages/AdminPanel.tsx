@@ -7,6 +7,7 @@ import { Trash2, Plus, FileText, ExternalLink, Lock, AlertCircle, Award, HelpCir
 
 const AdminPanel: React.FC = () => {
   const { 
+    loading,
     brochures, addBrochure, deleteBrochure,
     certificates, addCertificate, deleteCertificate,
     faqs, addFaq, updateFaq, deleteFaq,
@@ -211,6 +212,18 @@ const AdminPanel: React.FC = () => {
   } else if (activeTab === 'handbook') {
     currentList = handbookItems;
     Icon = GraduationCap;
+  }
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
+        <Header />
+        <div className="flex-grow flex flex-col items-center justify-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f68d1e]"></div>
+          <p className="mt-4 text-gray-500 font-medium">Initializing Admin Panel...</p>
+        </div>
+      </div>
+    );
   }
 
   if (!isAuthenticated) {
