@@ -87,7 +87,8 @@ interface DataContextType {
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(true);
+  const [loadedCollections, setLoadedCollections] = useState<Set<string>>(new Set());
   
   // State
   const [brochures, setBrochures] = useState<Brochure[]>([]);
@@ -139,7 +140,7 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       await seedCollection('projects', INITIAL_PROJECTS);
       await seedCollection('emi', INITIAL_EMI_PLANS);
       await seedCollection('handbook', INITIAL_HANDBOOK_ITEMS);
-      setLoading(false);
+      setSeeding(false);
     };
     seedAll();
   }, []);
@@ -153,6 +154,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
           ...doc.data()
         }));
         setState(items);
+        setLoadedCollections(prev => {
+          if (prev.has(collectionName)) return prev;
+          const next = new Set(prev);
+          next.add(collectionName);
+          return next;
+        });
       });
       return () => unsubscribe();
     }, [collectionName, setState]);
@@ -183,6 +190,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const updateInCollection = async (collectionName: string, id: string, data: any) => {
     await updateDoc(doc(db, collectionName, id), data);
   };
+
+  // Loading is true if seeding is in progress OR if not all collections have emitted their initial snapshot
+  // There are 11 collections being listened to.
+  const loading = seeding || loadedCollections.size < 11;
 
   // Exported Functions
   return (
