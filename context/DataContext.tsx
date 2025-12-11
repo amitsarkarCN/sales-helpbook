@@ -19,17 +19,9 @@ import {
 } from 'firebase/firestore';
 
 // Initial data for Brochures/Certs which are defined inside context previously
-const INITIAL_BROCHURES: Brochure[] = [
-  { id: '1', title: 'Full Stack Web Development', url: '#', subCategory: 'Job Bootcamp' },
-  { id: '2', title: 'Data Analytics & Engineering', url: '#', subCategory: 'Job Bootcamp' },
-  { id: '3', title: 'IIT Guwahati - Data Science', url: '#', subCategory: 'IIT PG' },
-  { id: '4', title: 'College Student Special', url: '#', subCategory: 'Student' },
-];
+const INITIAL_BROCHURES: Brochure[] = [];
 
-const INITIAL_CERTIFICATES: Certificate[] = [
-  { id: '1', title: 'Full Stack Completion Certificate', url: '#', subCategory: 'Job Bootcamp' },
-  { id: '2', title: 'Excellence Award Sample', url: '#', subCategory: 'Student' },
-];
+const INITIAL_CERTIFICATES: Certificate[] = [];
 
 interface DataContextType {
   brochures: Brochure[];
@@ -129,17 +121,10 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   // Seed data on mount
   useEffect(() => {
     const seedAll = async () => {
-      await seedCollection('brochures', INITIAL_BROCHURES);
-      await seedCollection('certificates', INITIAL_CERTIFICATES);
+      // Only seed FAQs as requested. 
+      // All other collections will remain empty if deleted from DB.
       await seedCollection('faqs', INITIAL_FAQS);
-      await seedCollection('alumni', INITIAL_ALUMNI);
-      await seedCollection('testimonials', INITIAL_TESTIMONIALS);
-      await seedCollection('competitors', INITIAL_COMPETITORS);
-      await seedCollection('links', INITIAL_IMPORTANT_LINKS);
-      await seedCollection('scripts', INITIAL_SALES_SCRIPTS);
-      await seedCollection('projects', INITIAL_PROJECTS);
-      await seedCollection('emi', INITIAL_EMI_PLANS);
-      await seedCollection('handbook', INITIAL_HANDBOOK_ITEMS);
+      
       setSeeding(false);
     };
     seedAll();

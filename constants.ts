@@ -142,87 +142,18 @@ export const INITIAL_FAQS: FAQ[] = [
   { id: '28', category: 'Live Demo class(MasC) by Data Analyst mentors', question: 'Mentor Megna Roy', answer: 'https://www.youtube.com/live/nUvGdYmDIUk?si=Q61TmmAhinhbuMpr' }
 ];
 
-export const INITIAL_ALUMNI: Alumni[] = [
-  {
-    id: '1',
-    name: 'Rahul Singh',
-    currentCompany: 'Google',
-    designation: 'SDE II',
-    linkedinProfile: '#',
-    imageUrl: '',
-    category: 'Software Development',
-    ctc: '24 LPA',
-    year: '2022'
-  },
-  {
-    id: '2',
-    name: 'Priya Sharma',
-    currentCompany: 'Amazon',
-    designation: 'Software Engineer',
-    linkedinProfile: '#',
-    imageUrl: '',
-    category: 'Software Development',
-    ctc: '28 LPA',
-    year: '2023'
-  },
-  {
-    id: '3',
-    name: 'Amit Patel',
-    currentCompany: 'Microsoft',
-    designation: 'Data Scientist',
-    linkedinProfile: '#',
-    imageUrl: '',
-    category: 'Data Analysis',
-    ctc: '22 LPA',
-    year: '2023'
-  }
-];
+export const INITIAL_ALUMNI: Alumni[] = [];
 
-export const INITIAL_TESTIMONIALS: Testimonial[] = [
-  { id: '1', name: 'Supratik Dey', videoUrl: 'https://youtube.com/shorts/ZXHtLJ8rooc', details: 'Supratik De B.Tech, Electronics and Communication, 2020\n157% Hike\nPlaced @ UKG' },
-  { id: '2', name: 'Rashid Reyaz Khan', videoUrl: 'https://youtu.be/fA7oEiLUG1E', details: 'Rashid Reyaz Khan B.tech in Mechanical, 2018\n140% Hike\nPlaced @ EXL Now Oracle' },
-  { id: '3', name: 'Tanmay Despande', videoUrl: 'https://youtu.be/cyiptBPI-wA', details: 'Tanmay Deshpande BE, IT, 2020\n180% hike\nPlaced @ Media.net' },
-  { id: '4', name: 'Ayush Kumar', videoUrl: 'https://youtu.be/LW_Ve3T8q7c', details: 'Ayush Kumar Gupta B.Tech, CSE, 2020\n200% Hike\nThoughtWhiz Software (Geektrust)' },
-  { id: '5', name: 'Hemant Kumar', videoUrl: 'https://youtu.be/klqVme7aNe4', details: 'B.Tech, Electrical 2020\nPlaced @ Perfaware India private limited' },
-  { id: '6', name: 'Anirudh Bhatt', videoUrl: 'https://youtu.be/1s_GuU-SZTk', details: 'Anirudh Bhat BE, Electronics and TeleCommunication, 2020\n120% Hike\nPlaced @ Flipkart' },
-  { id: '7', name: 'Bhawani Pratap', videoUrl: 'https://youtu.be/EW4JaTL5Elk', details: 'Bhawani Pratap B.Tech, ME, 2016\nPlaced @ PhenomPeople' },
-  { id: '8', name: 'Bharti Mishra', videoUrl: 'https://youtu.be/xoHJhhMRqxs', details: 'B.Sc 2013, M.Sc 2015\nPlaced @ Taxmann Technologies' },
-  { id: '9', name: 'Pradeep Thombre', videoUrl: 'https://youtu.be/vDor09CwY4M', details: 'Pradeep Thombre B.E, IT, 2022\n275% Hike\nPlaced @ Persistent Systems' },
-  { id: '10', name: 'Mohit Kumar', videoUrl: 'https://youtu.be/j-7giO5ex4o', details: 'Mohit Kumar B.Tech CSE, 2018\nPlaced @ Thirdera' },
-  { id: '11', name: 'Durgesh Chaubey', videoUrl: 'https://youtu.be/cHYR5dtDB90', details: 'Durgesh Chaubey B.Sc, IT, 2021\nPlaced @ Mastercard' },
-  { id: '12', name: 'Vaibhav Nikas', videoUrl: 'https://youtu.be/Cp9nT-1UQ8s', details: 'B.Tech, IT, 2022\nPlaced @ Wingify' },
-  { id: '13', name: 'Aqib Ahmed', videoUrl: 'https://youtu.be/bK89xLD1_w8', details: 'BCA, 2022\nPlaced @ Samarth eGov' },
-  { id: '14', name: 'Manish Gupta', videoUrl: 'https://youtu.be/_9fVY4b4L10', details: 'B.Sc. IT, 2022\nPlaced @ Tripstack' },
-  { id: '15', name: 'Abhishek Goswami', videoUrl: 'https://youtu.be/9tZR7QV0zTM', details: 'Abhishek Goswami B.Tech, CSE 2023\nPlaced @ SleevesUp' },
-  { id: '16', name: 'Prajwal Mahajan', videoUrl: 'https://youtu.be/NyAzWmAgFdU', details: 'BTech, Mechanical Engineering, 2021\nPlaced @ TVAST' }
-];
+export const INITIAL_TESTIMONIALS: Testimonial[] = [];
 
-export const INITIAL_COMPETITORS: CompetitorFile[] = [
-  { id: '1', title: 'Coding Ninjas vs Competitor A', url: '#' },
-  { id: '2', title: 'Feature Comparison Chart', url: '#' },
-];
+export const INITIAL_COMPETITORS: CompetitorFile[] = [];
 
-export const INITIAL_IMPORTANT_LINKS: ImportantLink[] = [
-  { id: '1', title: 'HR Portal', url: '#' },
-  { id: '2', title: 'Leave Management System', url: '#' },
-  { id: '3', title: 'Payroll Dashboard', url: '#' },
-];
+export const INITIAL_IMPORTANT_LINKS: ImportantLink[] = [];
 
-export const INITIAL_SALES_SCRIPTS: SalesScript[] = [
-  { id: '1', title: 'Cold Call Script V1', url: '#' },
-  { id: '2', title: 'Email Templates - Follow up', url: '#' },
-];
+export const INITIAL_SALES_SCRIPTS: SalesScript[] = [];
 
-export const INITIAL_PROJECTS: ProjectAssignment[] = [
-  { id: '1', title: 'Capstone Project Guidelines', url: '#' },
-  { id: '2', title: 'React Assignment 1', url: '#' },
-];
+export const INITIAL_PROJECTS: ProjectAssignment[] = [];
 
-export const INITIAL_EMI_PLANS: EMIPlan[] = [
-  { id: '1', title: 'Job Bootcamp No Cost EMI', url: '#', subCategory: 'Job Bootcamp' },
-  { id: '2', title: 'IIT PG EMI Options', url: '#', subCategory: 'IIT PG' },
-];
+export const INITIAL_EMI_PLANS: EMIPlan[] = [];
 
-export const INITIAL_HANDBOOK_ITEMS: HandbookItem[] = [
-  { id: '1', title: 'Sales Training Handbook - Smartflo & LSQ', url: '#' },
-];
+export const INITIAL_HANDBOOK_ITEMS: HandbookItem[] = [];
