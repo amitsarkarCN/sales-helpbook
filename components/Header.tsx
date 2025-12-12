@@ -1,6 +1,6 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
-import { BookOpen, LogIn, ArrowLeft } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { BookOpen, LogIn, ArrowLeft, Home } from 'lucide-react';
 
 interface HeaderProps {
   showBack?: boolean;
@@ -8,13 +8,15 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ showBack = false }) => {
   const navigate = useNavigate();
+  const location = useLocation();
+  const isAdminPage = location.pathname === '/admin';
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between items-center h-20">
           <div className="flex items-center gap-4">
-            {showBack && (
+            {showBack && !isAdminPage && (
               <button 
                 onClick={() => navigate('/')}
                 className="p-1.5 hover:bg-gray-100 rounded-full transition-colors text-gray-500"
@@ -39,13 +41,23 @@ const Header: React.FC<HeaderProps> = ({ showBack = false }) => {
           </div>
           
           <div className="flex items-center">
-            <button 
-              onClick={() => navigate('/admin')}
-              className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#414141] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
-            >
-              <LogIn className="w-4 h-4" />
-              Admin Panel
-            </button>
+            {isAdminPage ? (
+              <button 
+                onClick={() => navigate('/')}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#414141] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <Home className="w-4 h-4" />
+                Back to Website
+              </button>
+            ) : (
+              <button 
+                onClick={() => navigate('/admin')}
+                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#414141] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+              >
+                <LogIn className="w-4 h-4" />
+                Admin Panel
+              </button>
+            )}
           </div>
         </div>
       </div>
