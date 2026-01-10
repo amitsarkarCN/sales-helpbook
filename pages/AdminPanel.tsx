@@ -3,11 +3,13 @@ import Header from '../components/Header';
 import { useData } from '../context/DataContext';
 import { BROCHURE_SUBCATEGORIES, FAQ_CATEGORIES, ALUMNI_CATEGORIES } from '../constants';
 import { BrochureSubCategory, AlumniCategory, EMIPlanSubCategory } from '../types';
-import { Trash2, Plus, FileText, ExternalLink, Lock, AlertCircle, Award, HelpCircle, Edit2, Users, Video, BarChart3, Link, MessageSquare, FolderKanban, CreditCard, GraduationCap } from 'lucide-react';
+import { Trash2, Plus, FileText, ExternalLink, Lock, AlertCircle, Award, HelpCircle, Edit2, Users, Video, BarChart3, Link, MessageSquare, FolderKanban, CreditCard, GraduationCap, Loader2 } from 'lucide-react';
+import { auth } from '../firebase';
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
 
 const AdminPanel: React.FC = () => {
   const { 
-    loading,
+    loading: dataLoading,
     brochures, addBrochure, deleteBrochure,
     certificates, addCertificate, deleteCertificate,
     faqs, addFaq, updateFaq, deleteFaq,
@@ -22,39 +24,38 @@ const AdminPanel: React.FC = () => {
   } = useData();
   
   // Auth State
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [username, setUsername] = useState('');
+  const [user, setUser] = useState<User | null>(null);
+  const [authLoading, setAuthLoading] = useState(true);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // UI State
   const [activeTab, setActiveTab] = useState<'brochures' | 'certificates' | 'faqs' | 'alumni' | 'testimonials' | 'competitors' | 'links' | 'scripts' | 'projects' | 'emi' | 'handbook'>('brochures');
   const [editingId, setEditingId] = useState<string | null>(null);
 
   // Form State - Shared & Specific
-  const [title, setTitle] = useState(''); // Used as 'Question' for FAQs, 'Name' for Alumni/Testimonial, 'Title' for others
-  const [url, setUrl] = useState(''); // Used as 'Answer', 'LinkedIn', 'Video URL', 'PDF URL'
+  const [title, setTitle] = useState(''); 
+  const [url, setUrl] = useState(''); 
   const [subCategory, setSubCategory] = useState<string>('Job Bootcamp'); 
   
-  // Specific for Alumni/Testimonial
   const [company, setCompany] = useState('');
   const [designation, setDesignation] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [alumniCategory, setAlumniCategory] = useState<AlumniCategory>('Software Development');
   const [ctc, setCtc] = useState('');
   const [year, setYear] = useState('');
-  
-  // Specific for Testimonials (Details)
   const [details, setDetails] = useState('');
 
   useEffect(() => {
-    const auth = sessionStorage.getItem('sales_helpbook_auth');
-    if (auth === 'true') {
-      setIsAuthenticated(true);
-    }
+    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+      setUser(currentUser);
+      setAuthLoading(false);
+    });
+    return () => unsubscribe();
   }, []);
 
-  // Reset form when tab changes
   useEffect(() => {
     resetForm();
     if (activeTab === 'faqs') {
@@ -78,22 +79,28 @@ const AdminPanel: React.FC = () => {
     setEditingId(null);
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (username === 'admin' && password === 'Admin@CN2016') {
-      setIsAuthenticated(true);
-      sessionStorage.setItem('sales_helpbook_auth', 'true');
-      setError('');
-    } else {
-      setError('Invalid username or password');
+    setError('');
+    setIsLoggingIn(true);
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+    } catch (err: any) {
+      console.error(err);
+      setError('Invalid email or password. Please ensure you have created an admin account in the Firebase Console.');
+    } finally {
+      setIsLoggingIn(false);
     }
   };
 
-  const handleLogout = () => {
-    setIsAuthenticated(false);
-    sessionStorage.removeItem('sales_helpbook_auth');
-    setUsername('');
-    setPassword('');
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      setEmail('');
+      setPassword('');
+    } catch (err) {
+      console.error('Logout failed', err);
+    }
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -175,7 +182,6 @@ const AdminPanel: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Helper to get current list based on tab
   let currentList: any[] = [];
   let Icon: any = FileText;
   
@@ -214,19 +220,19 @@ const AdminPanel: React.FC = () => {
     Icon = GraduationCap;
   }
 
-  if (loading) {
+  if (authLoading || dataLoading) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
         <Header />
         <div className="flex-grow flex flex-col items-center justify-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#f68d1e]"></div>
-          <p className="mt-4 text-gray-500 font-medium">Initializing Admin Panel...</p>
+          <Loader2 className="animate-spin h-12 w-12 text-[#f68d1e] mb-4" />
+          <p className="text-gray-500 font-medium">Initializing Admin Panel...</p>
         </div>
       </div>
     );
   }
 
-  if (!isAuthenticated) {
+  if (!user) {
     return (
       <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
         <Header />
@@ -236,26 +242,27 @@ const AdminPanel: React.FC = () => {
               <div className="w-16 h-16 bg-[#f68d1e]/10 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Lock className="w-8 h-8 text-[#f68d1e]" />
               </div>
-              <h2 className="text-2xl font-bold text-[#414141]">Admin Access</h2>
-              <p className="text-gray-500 mt-2">Please sign in to manage content</p>
+              <h2 className="text-2xl font-bold text-[#414141]">Secure Admin Access</h2>
+              <p className="text-gray-500 mt-2">Log in with your Firebase admin account</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-5">
               {error && (
-                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-center gap-2 border border-red-100">
-                  <AlertCircle className="w-4 h-4" />
-                  {error}
+                <div className="bg-red-50 text-red-600 text-sm p-3 rounded-lg flex items-start gap-2 border border-red-100">
+                  <AlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                  <span>{error}</span>
                 </div>
               )}
               
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Username</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Admin Email</label>
                 <input
-                  type="text"
-                  value={username}
-                  onChange={(e) => setUsername(e.target.value)}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                  placeholder="Enter username"
+                  placeholder="admin@codingninjas.com"
+                  required
                   autoFocus
                 />
               </div>
@@ -267,15 +274,18 @@ const AdminPanel: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                  placeholder="Enter password"
+                  placeholder="Enter your password"
+                  required
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-[#f68d1e] text-white font-medium py-3 rounded-lg hover:bg-[#e07b10] transition-colors shadow-sm text-base mt-2"
+                disabled={isLoggingIn}
+                className="w-full bg-[#f68d1e] text-white font-medium py-3 rounded-lg hover:bg-[#e07b10] disabled:bg-[#f68d1e]/50 disabled:cursor-not-allowed transition-colors shadow-sm text-base mt-2 flex items-center justify-center gap-2"
               >
-                Sign In
+                {isLoggingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
+                {isLoggingIn ? 'Verifying...' : 'Sign In'}
               </button>
             </form>
           </div>
@@ -332,7 +342,10 @@ const AdminPanel: React.FC = () => {
         <div className="flex items-center justify-between mb-8">
           <div>
             <h1 className="text-3xl font-bold text-[#414141]">Admin Panel</h1>
-            <p className="text-gray-500 mt-1">Manage content for Sales Helpbook</p>
+            <p className="text-gray-500 mt-1 flex items-center gap-2">
+              <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
+              Secure Session for {user.email}
+            </p>
           </div>
           <button 
             onClick={handleLogout}

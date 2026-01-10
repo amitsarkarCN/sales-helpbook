@@ -23,12 +23,12 @@ const Dashboard: React.FC = () => {
     <div className="min-h-screen bg-white flex flex-col font-sans">
       <Header />
       
-      <main className="flex-grow max-w-[1400px] mx-auto px-4 sm:px-8 py-8 sm:py-12 w-full">
-        <div className="text-center mb-10 sm:mb-16">
+      <main className="flex-grow max-w-[1400px] mx-auto px-3 sm:px-8 py-8 sm:py-12 w-full">
+        <div className="text-center mb-8 sm:mb-16">
           <h2 className="text-2xl sm:text-4xl font-bold text-[#414141] mb-2 sm:mb-3">
             Welcome to Sales Helpbook
           </h2>
-          <p className="text-gray-500 text-base sm:text-lg">
+          <p className="text-gray-500 text-sm sm:text-lg">
             Your one-stop resource for all sales-related information
           </p>
         </div>

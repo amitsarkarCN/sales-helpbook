@@ -9,7 +9,9 @@ interface HeaderProps {
 const Header: React.FC<HeaderProps> = ({ showBack = false }) => {
   const navigate = useNavigate();
   const location = useLocation();
-  const isAdminPage = location.pathname === '/admin';
+  
+  // Use a more robust check for the admin path to handle trailing slashes or sub-paths
+  const isAdminPage = location.pathname.toLowerCase().includes('/admin');
 
   return (
     <header className="bg-white border-b border-gray-200 sticky top-0 z-50">
@@ -44,15 +46,16 @@ const Header: React.FC<HeaderProps> = ({ showBack = false }) => {
             {isAdminPage ? (
               <button 
                 onClick={() => navigate('/')}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#414141] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-[#414141] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <Home className="w-4 h-4" />
-                Back to Website
+                <span className="hidden xs:inline">Back to Website</span>
+                <span className="xs:hidden">Home</span>
               </button>
             ) : (
               <button 
                 onClick={() => navigate('/admin')}
-                className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-[#414141] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                className="flex items-center gap-2 px-3 sm:px-4 py-2 text-sm font-medium text-[#414141] border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
               >
                 <LogIn className="w-4 h-4" />
                 Admin Panel
