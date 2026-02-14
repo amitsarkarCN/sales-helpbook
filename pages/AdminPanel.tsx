@@ -3,9 +3,10 @@ import Header from '../components/Header';
 import { useData } from '../context/DataContext';
 import { BROCHURE_SUBCATEGORIES, FAQ_CATEGORIES, ALUMNI_CATEGORIES } from '../constants';
 import { BrochureSubCategory, AlumniCategory, EMIPlanSubCategory } from '../types';
-import { Trash2, Plus, FileText, ExternalLink, Lock, AlertCircle, Award, HelpCircle, Edit2, Users, Video, BarChart3, Link, MessageSquare, FolderKanban, CreditCard, GraduationCap, Loader2 } from 'lucide-react';
+import { Trash2, Plus, FileText, ExternalLink, Lock, AlertCircle, Award, HelpCircle, Edit2, Users, Video, BarChart3, Link, MessageSquare, FolderKanban, CreditCard, GraduationCap, Loader2, Share2, Sparkles, Image as ImageIcon } from 'lucide-react';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
+import { GoogleGenAI, Type } from "@google/genai";
 
 const AdminPanel: React.FC = () => {
   const { 
@@ -15,6 +16,7 @@ const AdminPanel: React.FC = () => {
     faqs, addFaq, updateFaq, deleteFaq,
     alumni, addAlumni, deleteAlumni,
     testimonials, addTestimonial, deleteTestimonial,
+    testimonialPosts, addTestimonialPost, updateTestimonialPost, deleteTestimonialPost,
     competitors, addCompetitor, updateCompetitor, deleteCompetitor,
     importantLinks, addImportantLink, updateImportantLink, deleteImportantLink,
     salesScripts, addSalesScript, updateSalesScript, deleteSalesScript,
@@ -32,10 +34,11 @@ const AdminPanel: React.FC = () => {
   const [isLoggingIn, setIsLoggingIn] = useState(false);
 
   // UI State
-  const [activeTab, setActiveTab] = useState<'brochures' | 'certificates' | 'faqs' | 'alumni' | 'testimonials' | 'competitors' | 'links' | 'scripts' | 'projects' | 'emi' | 'handbook'>('brochures');
+  const [activeTab, setActiveTab] = useState<'brochures' | 'certificates' | 'faqs' | 'alumni' | 'testimonials' | 'testimonialPosts' | 'competitors' | 'links' | 'scripts' | 'projects' | 'emi' | 'handbook'>('brochures');
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
 
-  // Form State - Shared & Specific
+  // Form State
   const [title, setTitle] = useState(''); 
   const [url, setUrl] = useState(''); 
   const [subCategory, setSubCategory] = useState<string>('Job Bootcamp'); 
@@ -87,7 +90,7 @@ const AdminPanel: React.FC = () => {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (err: any) {
       console.error(err);
-      setError('Invalid email or password. Please ensure you have created an admin account in the Firebase Console.');
+      setError('Invalid email or password.');
     } finally {
       setIsLoggingIn(false);
     }
@@ -100,6 +103,47 @@ const AdminPanel: React.FC = () => {
       setPassword('');
     } catch (err) {
       console.error('Logout failed', err);
+    }
+  };
+
+  const fetchPostMetadata = async () => {
+    if (!url || !url.startsWith('http')) {
+      setError('Please enter a valid URL first.');
+      return;
+    }
+
+    setIsFetchingMetadata(true);
+    setError('');
+
+    try {
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const response = await ai.models.generateContent({
+        model: 'gemini-3-flash-preview',
+        contents: `Fetch metadata for this social media post: ${url}. 
+        Identify the platform (LinkedIn, Instagram, etc.), the post's main heading/title, and find a direct URL to a representative image or thumbnail.
+        If it's a LinkedIn profile/post, the title should be the person's name and post context.`,
+        config: {
+          tools: [{ googleSearch: {} }],
+          responseMimeType: 'application/json',
+          responseSchema: {
+            type: Type.OBJECT,
+            properties: {
+              title: { type: Type.STRING, description: 'Clear title for the post.' },
+              imageUrl: { type: Type.STRING, description: 'Direct URL to a high-res image or thumbnail.' },
+            },
+            required: ['title', 'imageUrl'],
+          },
+        },
+      });
+
+      const data = JSON.parse(response.text || '{}');
+      if (data.title) setTitle(data.title);
+      if (data.imageUrl) setImageUrl(data.imageUrl);
+    } catch (err) {
+      console.error('Metadata fetch error:', err);
+      setError('Could not automatically fetch post info. Please enter manually.');
+    } finally {
+      setIsFetchingMetadata(false);
     }
   };
   
@@ -136,6 +180,12 @@ const AdminPanel: React.FC = () => {
         videoUrl: url,
         details: details
       });
+    } else if (activeTab === 'testimonialPosts') {
+      if (editingId) {
+        updateTestimonialPost(editingId, { title, url, imageUrl });
+      } else {
+        addTestimonialPost({ title, url, imageUrl });
+      }
     } else if (activeTab === 'competitors') {
       if (editingId) {
         updateCompetitor(editingId, { title, url });
@@ -175,10 +225,11 @@ const AdminPanel: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  const startEditItem = (id: string, t: string, u: string) => {
+  const startEditItem = (id: string, t: string, u: string, img?: string) => {
     setEditingId(id);
     setTitle(t);
     setUrl(u);
+    if (img) setImageUrl(img);
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -203,6 +254,9 @@ const AdminPanel: React.FC = () => {
   } else if (activeTab === 'testimonials') {
     currentList = testimonials;
     Icon = Video;
+  } else if (activeTab === 'testimonialPosts') {
+    currentList = testimonialPosts;
+    Icon = Share2;
   } else if (activeTab === 'competitors') {
     currentList = competitors;
     Icon = BarChart3;
@@ -243,7 +297,6 @@ const AdminPanel: React.FC = () => {
                 <Lock className="w-8 h-8 text-[#f68d1e]" />
               </div>
               <h2 className="text-2xl font-bold text-[#414141]">Secure Admin Access</h2>
-              <p className="text-gray-500 mt-2">Log in with your Firebase admin account</p>
             </div>
 
             <form onSubmit={handleLogin} className="space-y-5">
@@ -263,7 +316,6 @@ const AdminPanel: React.FC = () => {
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
                   placeholder="admin@codingninjas.com"
                   required
-                  autoFocus
                 />
               </div>
 
@@ -274,7 +326,7 @@ const AdminPanel: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                  placeholder="Enter your password"
+                  placeholder="••••••••"
                   required
                 />
               </div>
@@ -285,7 +337,7 @@ const AdminPanel: React.FC = () => {
                 className="w-full bg-[#f68d1e] text-white font-medium py-3 rounded-lg hover:bg-[#e07b10] disabled:bg-[#f68d1e]/50 disabled:cursor-not-allowed transition-colors shadow-sm text-base mt-2 flex items-center justify-center gap-2"
               >
                 {isLoggingIn ? <Loader2 className="w-5 h-5 animate-spin" /> : null}
-                {isLoggingIn ? 'Verifying...' : 'Sign In'}
+                {isLoggingIn ? 'Logging in...' : 'Sign In'}
               </button>
             </form>
           </div>
@@ -306,6 +358,9 @@ const AdminPanel: React.FC = () => {
     } else if (activeTab === 'testimonials') {
       if (field === 'title') return 'Student Name';
       if (field === 'url') return 'YouTube Video URL';
+    } else if (activeTab === 'testimonialPosts') {
+      if (field === 'title') return 'Post Title';
+      if (field === 'url') return 'Social Media Link (LinkedIn/Instagram)';
     } else if (activeTab === 'competitors') {
       if (field === 'title') return 'Document Title';
       if (field === 'url') return 'PDF Link URL';
@@ -332,7 +387,7 @@ const AdminPanel: React.FC = () => {
     return '';
   };
 
-  const isSimpleItemTab = ['competitors', 'links', 'scripts', 'projects', 'handbook'].includes(activeTab);
+  const isSimpleItemTab = ['competitors', 'links', 'scripts', 'projects', 'handbook', 'testimonialPosts'].includes(activeTab);
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col font-sans">
@@ -344,7 +399,7 @@ const AdminPanel: React.FC = () => {
             <h1 className="text-3xl font-bold text-[#414141]">Admin Panel</h1>
             <p className="text-gray-500 mt-1 flex items-center gap-2">
               <span className="inline-block w-2 h-2 rounded-full bg-green-500"></span>
-              Secure Session for {user.email}
+              Logged in as {user.email}
             </p>
           </div>
           <button 
@@ -357,7 +412,7 @@ const AdminPanel: React.FC = () => {
 
         {/* Tab Navigation */}
         <div className="flex gap-4 mb-8 border-b border-gray-200 overflow-x-auto pb-2">
-          {['brochures', 'certificates', 'faqs', 'alumni', 'testimonials', 'competitors', 'links', 'scripts', 'projects', 'emi', 'handbook'].map((tab) => (
+          {['brochures', 'certificates', 'faqs', 'alumni', 'testimonials', 'testimonialPosts', 'competitors', 'links', 'scripts', 'projects', 'emi', 'handbook'].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
@@ -367,7 +422,7 @@ const AdminPanel: React.FC = () => {
                   : 'text-gray-500 hover:text-gray-700'
               }`}
             >
-              {tab === 'faqs' ? 'FAQ' : tab === 'emi' ? 'EMI Plans' : tab}
+              {tab === 'faqs' ? 'FAQ' : tab === 'emi' ? 'EMI Plans' : tab === 'testimonialPosts' ? 'Testimonial Posts' : tab}
               {activeTab === tab && (
                 <div className="absolute bottom-0 left-0 w-full h-0.5 bg-[#f68d1e]" />
               )}
@@ -376,15 +431,53 @@ const AdminPanel: React.FC = () => {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Add New Form */}
           <div className="lg:col-span-1">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-24">
               <h2 className="text-lg font-bold text-[#414141] mb-4 flex items-center gap-2">
                 {editingId ? <Edit2 className="w-5 h-5 text-[#f68d1e]" /> : <Plus className="w-5 h-5 text-[#f68d1e]" />}
-                {editingId ? 'Edit Item' : `Add New ${activeTab === 'faqs' ? 'FAQ' : activeTab === 'alumni' ? 'Alumni' : activeTab === 'testimonials' ? 'Testimonial' : activeTab === 'competitors' ? 'Competitor Doc' : activeTab === 'emi' ? 'EMI Plan' : activeTab === 'handbook' ? 'Handbook' : 'Item'}`}
+                {editingId ? 'Edit Item' : `Add New ${activeTab === 'testimonialPosts' ? 'Testimonial Post' : 'Item'}`}
               </h2>
               
               <form onSubmit={handleSubmit} className="space-y-4">
+                {/* URL Input with Auto-Fetch */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    {getLabel('url')}
+                  </label>
+                  <div className="flex gap-2">
+                    {activeTab === 'faqs' ? (
+                       <textarea
+                       value={url}
+                       onChange={(e) => setUrl(e.target.value)}
+                       className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all h-24 resize-none"
+                       required
+                     />
+                    ) : (
+                      <div className="flex-1 space-y-2">
+                        <input
+                          type="url"
+                          value={url}
+                          onChange={(e) => setUrl(e.target.value)}
+                          placeholder="https://..."
+                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
+                          required={activeTab !== 'alumni' && activeTab !== 'testimonialPosts'} 
+                        />
+                        {activeTab === 'testimonialPosts' && (
+                          <button
+                            type="button"
+                            onClick={fetchPostMetadata}
+                            disabled={isFetchingMetadata || !url}
+                            className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-[#f68d1e]/10 text-[#f68d1e] text-xs font-bold rounded-lg hover:bg-[#f68d1e] hover:text-white transition-all disabled:opacity-50"
+                          >
+                            {isFetchingMetadata ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                            {isFetchingMetadata ? 'Fetching Metadata...' : 'Auto-Fetch Post Info'}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
                 {/* Title / Name / Question */}
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -394,171 +487,102 @@ const AdminPanel: React.FC = () => {
                     type="text"
                     value={title}
                     onChange={(e) => setTitle(e.target.value)}
-                    placeholder={activeTab === 'faqs' ? "e.g. What is the refund policy?" : "e.g. Title / Name"}
+                    placeholder="e.g. Title / Name"
                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
                     required
                   />
                 </div>
-                
-                {/* Extra Fields for Alumni */}
-                {activeTab === 'alumni' && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Current Company</label>
+
+                {/* Thumbnail Preview Area */}
+                {activeTab === 'testimonialPosts' && (
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-700">Thumbnail Preview</label>
+                    <div className="aspect-video w-full rounded-lg bg-gray-50 border border-dashed border-gray-200 flex items-center justify-center overflow-hidden">
+                      {imageUrl ? (
+                        <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" />
+                      ) : (
+                        <div className="flex flex-col items-center gap-2 text-gray-300">
+                          <ImageIcon className="w-8 h-8" />
+                          <span className="text-[10px] font-medium">No Image Fetched</span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Manual Override (Small) */}
+                    <div className="flex flex-col gap-1">
+                      <span className="text-[10px] text-gray-400">Manual Image URL (optional override)</span>
                       <input
-                        type="text"
-                        value={company}
-                        onChange={(e) => setCompany(e.target.value)}
-                        placeholder="e.g. Google"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Designation</label>
-                      <input
-                        type="text"
-                        value={designation}
-                        onChange={(e) => setDesignation(e.target.value)}
-                        placeholder="e.g. Senior Software Engineer"
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                        required
-                      />
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">CTC (Optional)</label>
-                        <input
-                          type="text"
-                          value={ctc}
-                          onChange={(e) => setCtc(e.target.value)}
-                          placeholder="e.g. 24 LPA"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">Year (Optional)</label>
-                        <input
-                          type="text"
-                          value={year}
-                          onChange={(e) => setYear(e.target.value)}
-                          placeholder="e.g. 2023"
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                      <select
-                        value={alumniCategory}
-                        onChange={(e) => setAlumniCategory(e.target.value as AlumniCategory)}
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                      >
-                         {ALUMNI_CATEGORIES.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                         ))}
-                      </select>
-                    </div>
-                    <div>
-                       <label className="block text-sm font-medium text-gray-700 mb-1">Image URL (Optional)</label>
-                       <input
                         type="url"
                         value={imageUrl}
                         onChange={(e) => setImageUrl(e.target.value)}
-                        placeholder="https://..."
-                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
+                        placeholder="Paste image URL..."
+                        className="w-full px-2 py-1 text-xs border border-gray-200 rounded outline-none"
                       />
+                    </div>
+                  </div>
+                )}
+                
+                {activeTab === 'alumni' && (
+                  <>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Company</label>
+                        <input type="text" value={company} onChange={(e) => setCompany(e.target.value)} placeholder="Google" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" required />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Role</label>
+                        <input type="text" value={designation} onChange={(e) => setDesignation(e.target.value)} placeholder="SDE" className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" required />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">Profile Pic URL</label>
+                      <input type="url" value={imageUrl} onChange={(e) => setImageUrl(e.target.value)} placeholder="https://..." className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none" />
                     </div>
                   </>
                 )}
 
-                {/* Extra fields for Testimonials */}
                 {activeTab === 'testimonials' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">Details (Batch, Placement, Hike etc.)</label>
-                    <textarea
-                      value={details}
-                      onChange={(e) => setDetails(e.target.value)}
-                      placeholder="Enter details..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all h-24 resize-none"
-                      required
-                    />
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Success Story Details</label>
+                    <textarea value={details} onChange={(e) => setDetails(e.target.value)} placeholder="Batch, Placement, Hike etc." className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none h-24" required />
                   </div>
                 )}
 
-                {/* URL / Answer / LinkedIn / Video URL */}
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    {getLabel('url')}
-                  </label>
-                  {activeTab === 'faqs' ? (
-                     <textarea
-                     value={url}
-                     onChange={(e) => setUrl(e.target.value)}
-                     placeholder="Enter answer or paste URL..."
-                     className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all h-24 resize-none"
-                     required
-                   />
-                  ) : (
-                    <input
-                      type="url"
-                      value={url}
-                      onChange={(e) => setUrl(e.target.value)}
-                      placeholder="https://..."
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                      required={activeTab !== 'alumni'} 
-                    />
-                  )}
-                </div>
-                
-                {/* Category Dropdown (Hidden for Alumni, Testimonials, Competitors, Links, Scripts, Projects) */}
-                {activeTab !== 'alumni' && activeTab !== 'testimonials' && !isSimpleItemTab && (
+                {/* Subcategory Selectors */}
+                {activeTab === 'alumni' && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">Department</label>
+                    <select value={alumniCategory} onChange={(e) => setAlumniCategory(e.target.value as AlumniCategory)} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none">
+                        {ALUMNI_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
+                    </select>
+                  </div>
+                )}
+
+                {!isSimpleItemTab && activeTab !== 'alumni' && activeTab !== 'testimonials' && (
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-1">Category</label>
-                    <select
-                      value={subCategory}
-                      onChange={(e) => setSubCategory(e.target.value)}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] focus:border-transparent outline-none transition-all"
-                    >
-                      {activeTab === 'faqs' 
-                        ? FAQ_CATEGORIES.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                          ))
-                        : BROCHURE_SUBCATEGORIES.map(cat => (
-                            <option key={cat} value={cat}>{cat}</option>
-                          ))
-                      }
+                    <select value={subCategory} onChange={(e) => setSubCategory(e.target.value)} className="w-full px-3 py-2 border border-gray-300 rounded-lg outline-none">
+                      {activeTab === 'faqs' ? FAQ_CATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>) : BROCHURE_SUBCATEGORIES.map(cat => <option key={cat} value={cat}>{cat}</option>)}
                     </select>
                   </div>
                 )}
                 
                 <div className="flex gap-2 pt-2">
-                  <button
-                    type="submit"
-                    className="flex-1 bg-[#f68d1e] text-white font-medium py-2.5 rounded-lg hover:bg-[#e07b10] transition-colors shadow-sm"
-                  >
-                    {editingId ? 'Update' : 'Add'}
+                  <button type="submit" className="flex-1 bg-[#f68d1e] text-white font-medium py-2.5 rounded-lg hover:bg-[#e07b10] transition-colors shadow-sm">
+                    {editingId ? 'Update' : 'Add to Helpbook'}
                   </button>
                   {editingId && (
-                    <button
-                      type="button"
-                      onClick={resetForm}
-                      className="px-4 py-2.5 bg-gray-100 text-gray-600 font-medium rounded-lg hover:bg-gray-200 transition-colors"
-                    >
-                      Cancel
-                    </button>
+                    <button type="button" onClick={resetForm} className="px-4 py-2.5 bg-gray-100 text-gray-600 font-medium rounded-lg transition-colors">Cancel</button>
                   )}
                 </div>
               </form>
             </div>
           </div>
 
-          {/* Right Column: Existing List */}
           <div className="lg:col-span-2 space-y-6">
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
               <div className="px-6 py-4 border-b border-gray-200 bg-gray-50 flex justify-between items-center">
                 <h2 className="font-semibold text-[#414141] capitalize">
-                  Existing {activeTab === 'faqs' ? 'FAQs' : activeTab === 'competitors' ? 'Competitor Files' : activeTab === 'emi' ? 'EMI Plans' : activeTab === 'handbook' ? 'Handbook Docs' : activeTab}
+                  {activeTab === 'testimonialPosts' ? 'Testimonial Posts' : activeTab}
                 </h2>
                 <span className="bg-[#f68d1e]/10 text-[#f68d1e] text-xs font-medium px-2.5 py-0.5 rounded-full">
                   {currentList.length} Total
@@ -567,16 +591,14 @@ const AdminPanel: React.FC = () => {
               
               <div className="divide-y divide-gray-100">
                 {currentList.length === 0 ? (
-                  <div className="p-8 text-center text-gray-500">
-                    No items added yet.
-                  </div>
+                  <div className="p-8 text-center text-gray-500">No items added yet.</div>
                 ) : (
                   currentList.map((item) => (
                     <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors flex items-start justify-between group gap-4">
                       <div className="flex items-start gap-3 flex-1">
                         <div className="p-2 bg-gray-100 rounded-lg text-gray-400 group-hover:text-[#f68d1e] group-hover:bg-[#f68d1e]/10 transition-colors mt-1">
-                          {activeTab === 'alumni' && item.imageUrl ? (
-                             <img src={item.imageUrl} alt="" className="w-5 h-5 rounded-full object-cover" />
+                          {(activeTab === 'alumni' || activeTab === 'testimonialPosts') && item.imageUrl ? (
+                             <img src={item.imageUrl} alt="" className="w-5 h-5 rounded-md object-cover" />
                           ) : (
                              <Icon className="w-5 h-5" />
                           )}
@@ -586,67 +608,40 @@ const AdminPanel: React.FC = () => {
                             {activeTab === 'faqs' ? item.question : activeTab === 'alumni' || activeTab === 'testimonials' ? item.name : item.title}
                           </h3>
                           <div className="flex flex-wrap items-center gap-2 mt-1.5">
-                            {activeTab !== 'alumni' && activeTab !== 'testimonials' && !isSimpleItemTab ? (
+                            {activeTab !== 'alumni' && activeTab !== 'testimonials' && !isSimpleItemTab && (
                               <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-600">
                                 {activeTab === 'faqs' ? item.category : item.subCategory}
                               </span>
-                            ) : null}
-                            
-                            {activeTab === 'alumni' && (
-                               <>
-                               <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-100 text-gray-600">
-                                 {item.category}
-                               </span>
-                               <span className="text-xs text-gray-500">
-                                 {item.designation} at {item.currentCompany}
-                               </span>
-                               {(item.year || item.ctc) && (
-                                 <span className="text-xs font-medium text-[#f68d1e] px-1.5 py-0.5 bg-[#f68d1e]/10 rounded">
-                                   {[item.year, item.ctc].filter(Boolean).join(' • ')}
-                                 </span>
-                               )}
-                               </>
                             )}
-
-                            {activeTab !== 'faqs' && (item.url || item.linkedinProfile || item.videoUrl) && (
-                              <a 
-                                href={item.url || item.linkedinProfile || item.videoUrl} 
-                                target="_blank" 
-                                rel="noopener noreferrer"
-                                className="text-xs text-blue-500 hover:underline flex items-center gap-1"
-                              >
-                                View {activeTab === 'alumni' ? 'Profile' : activeTab === 'testimonials' ? 'Video' : 'Link'} <ExternalLink className="w-3 h-3" />
+                            {(item.url || item.linkedinProfile || item.videoUrl) && (
+                              <a href={item.url || item.linkedinProfile || item.videoUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-500 hover:underline flex items-center gap-1">
+                                View Original <ExternalLink className="w-3 h-3" />
                               </a>
                             )}
                           </div>
-                          {activeTab === 'faqs' && (
-                             <p className="text-xs text-gray-500 mt-1 line-clamp-2 break-all">{item.answer}</p>
-                          )}
-                          {activeTab === 'testimonials' && (
-                             <p className="text-xs text-gray-500 mt-1 whitespace-pre-line">{item.details}</p>
-                          )}
                         </div>
                       </div>
                       
                       <div className="flex items-center gap-1">
-                         {(activeTab === 'faqs' || isSimpleItemTab) && activeTab !== 'handbook' && (
+                        {(activeTab === 'faqs' || isSimpleItemTab) && (
                           <button
                             onClick={() => {
                               if (activeTab === 'faqs') startEditFaq(item.id, item.question, item.answer, item.category);
+                              else if (activeTab === 'testimonialPosts') startEditItem(item.id, item.title, item.url, item.imageUrl);
                               else startEditItem(item.id, item.title, item.url);
                             }}
                             className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                            title="Edit Item"
                           >
                             <Edit2 className="w-4 h-4" />
                           </button>
-                         )}
+                        )}
                         <button
                           onClick={() => {
                              if (activeTab === 'brochures') deleteBrochure(item.id);
                              else if (activeTab === 'certificates') deleteCertificate(item.id);
                              else if (activeTab === 'alumni') deleteAlumni(item.id);
                              else if (activeTab === 'testimonials') deleteTestimonial(item.id);
+                             else if (activeTab === 'testimonialPosts') deleteTestimonialPost(item.id);
                              else if (activeTab === 'competitors') deleteCompetitor(item.id);
                              else if (activeTab === 'links') deleteImportantLink(item.id);
                              else if (activeTab === 'scripts') deleteSalesScript(item.id);
@@ -656,7 +651,6 @@ const AdminPanel: React.FC = () => {
                              else deleteFaq(item.id);
                           }}
                           className="p-2 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                          title="Delete Item"
                         >
                           <Trash2 className="w-4 h-4" />
                         </button>

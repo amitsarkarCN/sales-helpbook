@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { Brochure, Certificate, FAQ, Alumni, Testimonial, CompetitorFile, ImportantLink, SalesScript, ProjectAssignment, EMIPlan, HandbookItem } from '../types';
+import { Brochure, Certificate, FAQ, Alumni, Testimonial, TestimonialPost, CompetitorFile, ImportantLink, SalesScript, ProjectAssignment, EMIPlan, HandbookItem } from '../types';
 import { 
   INITIAL_FAQS, INITIAL_ALUMNI, INITIAL_TESTIMONIALS, INITIAL_COMPETITORS, 
   INITIAL_IMPORTANT_LINKS, INITIAL_SALES_SCRIPTS, INITIAL_PROJECTS, 
@@ -18,9 +18,7 @@ import {
   writeBatch
 } from 'firebase/firestore';
 
-// Initial data for Brochures/Certs which are defined inside context previously
 const INITIAL_BROCHURES: Brochure[] = [];
-
 const INITIAL_CERTIFICATES: Certificate[] = [];
 
 interface DataContextType {
@@ -44,6 +42,11 @@ interface DataContextType {
   testimonials: Testimonial[];
   addTestimonial: (testimonial: Omit<Testimonial, 'id'>) => void;
   deleteTestimonial: (id: string) => void;
+
+  testimonialPosts: TestimonialPost[];
+  addTestimonialPost: (post: Omit<TestimonialPost, 'id'>) => void;
+  updateTestimonialPost: (id: string, post: Omit<TestimonialPost, 'id'>) => void;
+  deleteTestimonialPost: (id: string) => void;
 
   competitors: CompetitorFile[];
   addCompetitor: (competitor: Omit<CompetitorFile, 'id'>) => void;
@@ -82,12 +85,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [seeding, setSeeding] = useState(true);
   const [loadedCollections, setLoadedCollections] = useState<Set<string>>(new Set());
   
-  // State
   const [brochures, setBrochures] = useState<Brochure[]>([]);
   const [certificates, setCertificates] = useState<Certificate[]>([]);
   const [faqs, setFaqs] = useState<FAQ[]>([]);
   const [alumni, setAlumni] = useState<Alumni[]>([]);
   const [testimonials, setTestimonials] = useState<Testimonial[]>([]);
+  const [testimonialPosts, setTestimonialPosts] = useState<TestimonialPost[]>([]);
   const [competitors, setCompetitors] = useState<CompetitorFile[]>([]);
   const [importantLinks, setImportantLinks] = useState<ImportantLink[]>([]);
   const [salesScripts, setSalesScripts] = useState<SalesScript[]>([]);
@@ -95,7 +98,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [emiPlans, setEmiPlans] = useState<EMIPlan[]>([]);
   const [handbookItems, setHandbookItems] = useState<HandbookItem[]>([]);
 
-  // Generic helper to seed data if collection is empty
   const seedCollection = async (collectionName: string, initialData: any[]) => {
     try {
       const q = query(collection(db, collectionName));
@@ -105,8 +107,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
         console.log(`Seeding ${collectionName}...`);
         const batch = writeBatch(db);
         initialData.forEach((item) => {
-          // Remove ID from item as Firestore creates its own, or use a new ref
-          // We'll let firestore auto-id but we pass the fields
           const docRef = doc(collection(db, collectionName));
           const { id, ...data } = item;
           batch.set(docRef, data);
@@ -118,19 +118,14 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  // Seed data on mount
   useEffect(() => {
     const seedAll = async () => {
-      // Only seed FAQs as requested. 
-      // All other collections will remain empty if deleted from DB.
       await seedCollection('faqs', INITIAL_FAQS);
-      
       setSeeding(false);
     };
     seedAll();
   }, []);
 
-  // Generic Listener
   const useCollectionListener = (collectionName: string, setState: Function) => {
     useEffect(() => {
       const unsubscribe = onSnapshot(collection(db, collectionName), (snapshot) => {
@@ -150,12 +145,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }, [collectionName, setState]);
   };
 
-  // Attach Listeners
   useCollectionListener('brochures', setBrochures);
   useCollectionListener('certificates', setCertificates);
   useCollectionListener('faqs', setFaqs);
   useCollectionListener('alumni', setAlumni);
   useCollectionListener('testimonials', setTestimonials);
+  useCollectionListener('testimonialPosts', setTestimonialPosts);
   useCollectionListener('competitors', setCompetitors);
   useCollectionListener('links', setImportantLinks);
   useCollectionListener('scripts', setSalesScripts);
@@ -163,7 +158,6 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
   useCollectionListener('emi', setEmiPlans);
   useCollectionListener('handbook', setHandbookItems);
 
-  // CRUD Handlers
   const addToCollection = async (collectionName: string, data: any) => {
     await addDoc(collection(db, collectionName), data);
   };
@@ -176,11 +170,9 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
     await updateDoc(doc(db, collectionName, id), data);
   };
 
-  // Loading is true if seeding is in progress OR if not all collections have emitted their initial snapshot
-  // There are 11 collections being listened to.
-  const loading = seeding || loadedCollections.size < 11;
+  // 12 collections total now
+  const loading = seeding || loadedCollections.size < 12;
 
-  // Exported Functions
   return (
     <DataContext.Provider value={{ 
       loading,
@@ -205,6 +197,11 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
       testimonials,
       addTestimonial: (item) => addToCollection('testimonials', item),
       deleteTestimonial: (id) => deleteFromCollection('testimonials', id),
+
+      testimonialPosts,
+      addTestimonialPost: (item) => addToCollection('testimonialPosts', item),
+      updateTestimonialPost: (id, item) => updateInCollection('testimonialPosts', id, item),
+      deleteTestimonialPost: (id) => deleteFromCollection('testimonialPosts', id),
 
       competitors,
       addCompetitor: (item) => addToCollection('competitors', item),

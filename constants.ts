@@ -11,7 +11,7 @@ import {
   FolderKanban, 
   CreditCard, 
   GraduationCap, 
-  Lightbulb 
+  Video 
 } from 'lucide-react';
 
 export const CATEGORIES: Category[] = [
@@ -38,6 +38,12 @@ export const CATEGORIES: Category[] = [
     title: 'Coding Ninjas Alumni',
     description: 'Success stories and alumni network details.',
     icon: Users
+  },
+  {
+    id: 'testimonials',
+    title: 'Testimonials',
+    description: 'Inspiring success videos and social media posts.',
+    icon: Video
   },
   {
     id: 'placements',
@@ -80,12 +86,6 @@ export const CATEGORIES: Category[] = [
     title: 'Training Handbook',
     description: 'Internal sales training modules and quizzes.',
     icon: GraduationCap
-  },
-  {
-    id: 'requests',
-    title: 'Feature Request',
-    description: 'Submit feedback and request new tools.',
-    icon: Lightbulb
   }
 ];
 

@@ -60,6 +60,13 @@ export interface Testimonial {
   details: string;
 }
 
+export interface TestimonialPost {
+  id: string;
+  title: string;
+  url: string;
+  imageUrl?: string;
+}
+
 export interface CompetitorFile {
   id: string;
   title: string;
