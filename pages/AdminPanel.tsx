@@ -108,9 +108,15 @@ const AdminPanel: React.FC = () => {
     }
   };
 
+  const getLinkedinUnavatarUrl = (linkedinUrl: string) => {
+    if (!linkedinUrl) return '';
+    const match = linkedinUrl.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/([^\/?#]+)/i);
+    return match && match[1] ? `https://unavatar.io/linkedin/user:${match[1]}` : '';
+  };
+
   const fetchPostMetadata = async () => {
     if (!url || !url.startsWith('http')) {
-      setError('Please enter a valid social media URL first.');
+      setError('Please enter a valid URL first.');
       return;
     }
 
@@ -120,9 +126,17 @@ const AdminPanel: React.FC = () => {
 
     try {
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-      const response = await ai.models.generateContent({
-        model: 'gemini-3-pro-preview',
-        contents: `I need metadata for this social media post: ${url}. 
+      const promptContent = activeTab === 'alumni' 
+        ? `I need metadata for this LinkedIn profile: ${url}. 
+        
+        TASK:
+        1. Extract the person's full name.
+        2. Search for the public profile picture URL of this person (look for their LinkedIn profile picture or og:image).
+        3. Extract or guess their current company and job title (designation) from public information.
+        4. Return a direct URL to a JPG/PNG that is likely to be accessible.
+        
+        CRITICAL: Ensure the image URL is a direct link to a hosted image asset.`
+        : `I need metadata for this social media post: ${url}. 
         
         TASK:
         1. Identify the platform (LinkedIn, Instagram, Twitter/X).
@@ -130,17 +144,25 @@ const AdminPanel: React.FC = () => {
         3. Search for the most representative PUBLIC image URL. For Instagram, look for the post thumbnail. For LinkedIn, look for the 'og:image' or the profile picture of the author if it's a profile link.
         4. Return a direct URL to a JPG/PNG that is likely to be accessible.
         
-        CRITICAL: Ensure the image URL is a direct link to a hosted image asset.`,
+        CRITICAL: Ensure the image URL is a direct link to a hosted image asset.`;
+
+      const response = await ai.models.generateContent({
+        model: 'gemini-2.5-flash',
+        contents: promptContent,
         config: {
-          systemInstruction: 'You are a professional metadata extraction tool specializing in social media content. Your output must be strictly JSON format.',
+          systemInstruction: activeTab === 'alumni'
+            ? 'You are a professional metadata extraction tool specializing in LinkedIn profiles. Your output must be strictly JSON format.'
+            : 'You are a professional metadata extraction tool specializing in social media content. Your output must be strictly JSON format.',
           tools: [{ googleSearch: {} }],
           responseMimeType: 'application/json',
           responseSchema: {
             type: Type.OBJECT,
             properties: {
-              title: { type: Type.STRING, description: 'A concise, professional title for the post.' },
-              imageUrl: { type: Type.STRING, description: 'A publicly accessible direct image URL for the thumbnail.' },
-              platform: { type: Type.STRING, description: 'The social media platform identified.' }
+              title: { type: Type.STRING, description: 'The full name of the person or professional title for the post.' },
+              imageUrl: { type: Type.STRING, description: 'A publicly accessible direct image URL for the profile picture or thumbnail.' },
+              platform: { type: Type.STRING, description: 'The social media platform identified.' },
+              company: { type: Type.STRING, description: 'For profiles, the current company name.' },
+              designation: { type: Type.STRING, description: 'For profiles, the job designation/title.' }
             },
             required: ['title', 'imageUrl'],
           },
@@ -154,11 +176,17 @@ const AdminPanel: React.FC = () => {
       
       if (data.title) setTitle(data.title);
       if (data.imageUrl) setImageUrl(data.imageUrl);
+      
+      if (activeTab === 'alumni') {
+        if (data.company) setCompany(data.company);
+        if (data.designation) setDesignation(data.designation);
+      }
+      
       setFetchSuccess(true);
       
     } catch (err) {
       console.error('Metadata fetch error:', err);
-      setError('Automated fetch failed for this URL. This usually happens if the post is private or platform-blocked. Please fill in the details manually.');
+      setError('Automated fetch failed for this URL. This usually happens if the profile/post is private or platform-blocked. Please fill in the details manually.');
     } finally {
       setIsFetchingMetadata(false);
     }
@@ -474,7 +502,7 @@ const AdminPanel: React.FC = () => {
                           className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-[#f68d1e] outline-none transition-all"
                           required={activeTab !== 'alumni' && activeTab !== 'testimonialPosts'} 
                         />
-                        {activeTab === 'testimonialPosts' && (
+                        {(activeTab === 'testimonialPosts' || activeTab === 'alumni') && (
                           <button
                             type="button"
                             onClick={fetchPostMetadata}
@@ -485,8 +513,18 @@ const AdminPanel: React.FC = () => {
                                 : 'bg-[#f68d1e]/10 text-[#f68d1e] border-[#f68d1e]/20 hover:bg-[#f68d1e] hover:text-white'
                             } disabled:opacity-50`}
                           >
-                            {isFetchingMetadata ? <Loader2 className="w-3 h-3 animate-spin" /> : fetchSuccess ? <CheckCircle2 className="w-3 h-3" /> : <Sparkles className="w-3 h-3" />}
-                            {isFetchingMetadata ? 'Analyzing Post...' : fetchSuccess ? 'Info Fetched Successfully' : '✨ Auto-Fetch Title & Thumbnail'}
+                            {isFetchingMetadata ? (
+                              <Loader2 className="w-3 h-3 animate-spin" />
+                            ) : fetchSuccess ? (
+                              <CheckCircle2 className="w-3 h-3" />
+                            ) : (
+                              <Sparkles className="w-3 h-3" />
+                            )}
+                            {isFetchingMetadata 
+                              ? (activeTab === 'alumni' ? 'Analyzing Profile...' : 'Analyzing Post...') 
+                              : fetchSuccess 
+                                ? 'Info Fetched Successfully' 
+                                : (activeTab === 'alumni' ? '✨ Auto-Fetch Name & Photo' : '✨ Auto-Fetch Title & Thumbnail')}
                           </button>
                         )}
                       </div>
@@ -513,9 +551,20 @@ const AdminPanel: React.FC = () => {
                 {(activeTab === 'testimonialPosts' || activeTab === 'alumni') && (
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-700">Image Preview</label>
-                    <div className={`aspect-video w-full rounded-lg bg-gray-50 border border-dashed flex items-center justify-center overflow-hidden transition-colors ${imageUrl ? 'border-green-200' : 'border-gray-200'}`}>
-                      {imageUrl ? (
-                        <img src={imageUrl} alt="Preview" className="w-full h-full object-cover" onError={() => setImageUrl('')} />
+                    <div className={`aspect-video w-full rounded-lg bg-gray-50 border border-dashed flex items-center justify-center overflow-hidden transition-colors ${(imageUrl || (activeTab === 'alumni' && url)) ? 'border-green-200' : 'border-gray-200'}`}>
+                      {(imageUrl || (activeTab === 'alumni' && getLinkedinUnavatarUrl(url))) ? (
+                        <img 
+                          src={imageUrl || getLinkedinUnavatarUrl(url)} 
+                          alt="Preview" 
+                          className="w-full h-full object-cover" 
+                          onError={(e) => {
+                            if (imageUrl) {
+                              setImageUrl('');
+                            } else {
+                              e.currentTarget.style.display = 'none';
+                            }
+                          }} 
+                        />
                       ) : (
                         <div className="flex flex-col items-center gap-2 text-gray-300">
                           <ImageIcon className="w-8 h-8" />
@@ -612,8 +661,23 @@ const AdminPanel: React.FC = () => {
                     <div key={item.id} className="p-4 hover:bg-gray-50 transition-colors flex items-start justify-between group gap-4">
                       <div className="flex items-start gap-3 flex-1">
                         <div className="p-2 bg-gray-100 rounded-lg text-gray-400 group-hover:text-[#f68d1e] group-hover:bg-[#f68d1e]/10 transition-colors mt-1 overflow-hidden w-12 h-12 flex items-center justify-center">
-                          {(activeTab === 'alumni' || activeTab === 'testimonialPosts') && item.imageUrl ? (
-                             <img src={item.imageUrl} alt="" className="w-full h-full object-cover" />
+                          {(activeTab === 'alumni' || activeTab === 'testimonialPosts') && (item.imageUrl || (activeTab === 'alumni' && item.linkedinProfile)) ? (
+                             <img 
+                               src={item.imageUrl || (item.linkedinProfile ? `https://unavatar.io/linkedin/user:${item.linkedinProfile.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/([^\/?#]+)/i)?.[1] || ''}` : '')} 
+                               alt="" 
+                               className="w-full h-full object-cover" 
+                               onError={(e) => {
+                                 const target = e.currentTarget;
+                                 if (activeTab === 'alumni' && item.linkedinProfile && !target.src.includes('unavatar.io')) {
+                                   const match = item.linkedinProfile.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/([^\/?#]+)/i);
+                                   if (match && match[1]) {
+                                     target.src = `https://unavatar.io/linkedin/user:${match[1]}`;
+                                     return;
+                                   }
+                                 }
+                                 target.style.display = 'none';
+                               }}
+                             />
                           ) : (
                              <Icon className="w-5 h-5" />
                           )}

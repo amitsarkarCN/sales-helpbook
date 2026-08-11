@@ -4,6 +4,77 @@ import Header from '../components/Header';
 import { CATEGORIES, BROCHURE_SUBCATEGORIES, FAQ_CATEGORIES, ALUMNI_CATEGORIES } from '../constants';
 import { Construction, FileText, Download, ExternalLink, ChevronRight, Award, HelpCircle, PlayCircle, Linkedin, User, Video, Youtube, BarChart3, Link, MessageSquare, FolderKanban, CreditCard, GraduationCap, Share2 } from 'lucide-react';
 import { useData } from '../context/DataContext';
+import { Alumni } from '../types';
+
+const AlumniAvatar: React.FC<{ alum: Alumni }> = ({ alum }) => {
+  const [imgSrc, setImgSrc] = useState<string | null>(() => {
+    if (alum.imageUrl && alum.imageUrl.trim() !== '') {
+      return alum.imageUrl;
+    }
+    if (alum.linkedinProfile) {
+      const usernameMatch = alum.linkedinProfile.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/([^\/?#]+)/i);
+      if (usernameMatch && usernameMatch[1]) {
+        return `https://unavatar.io/linkedin/user:${usernameMatch[1]}`;
+      }
+    }
+    return null;
+  });
+  
+  const [hasError, setHasError] = useState(false);
+
+  const handleImageError = () => {
+    if (imgSrc && !imgSrc.includes('unavatar.io') && alum.linkedinProfile) {
+      const usernameMatch = alum.linkedinProfile.match(/(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/([^\/?#]+)/i);
+      if (usernameMatch && usernameMatch[1]) {
+        setImgSrc(`https://unavatar.io/linkedin/user:${usernameMatch[1]}`);
+        return;
+      }
+    }
+    setHasError(true);
+  };
+
+  const getInitials = (name: string) => {
+    if (!name) return '';
+    const parts = name.trim().split(/\s+/);
+    if (parts.length === 1) return parts[0].charAt(0).toUpperCase();
+    return (parts[0].charAt(0) + parts[parts.length - 1].charAt(0)).toUpperCase();
+  };
+
+  const getAvatarColor = (name: string) => {
+    const colors = [
+      'bg-gradient-to-br from-orange-400 to-amber-500 text-white',
+      'bg-gradient-to-br from-blue-400 to-indigo-500 text-white',
+      'bg-gradient-to-br from-emerald-400 to-teal-500 text-white',
+      'bg-gradient-to-br from-rose-400 to-pink-500 text-white',
+      'bg-gradient-to-br from-purple-400 to-violet-500 text-white',
+      'bg-gradient-to-br from-cyan-400 to-blue-500 text-white',
+    ];
+    let hash = 0;
+    for (let i = 0; i < name.length; i++) {
+      hash = name.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % colors.length;
+    return colors[index];
+  };
+
+  if (imgSrc && !hasError) {
+    return (
+      <img 
+        src={imgSrc} 
+        alt={alum.name} 
+        className="w-full h-full object-cover" 
+        onError={handleImageError}
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
+  return (
+    <div className={`w-full h-full flex items-center justify-center font-bold text-xl uppercase ${getAvatarColor(alum.name)}`}>
+      {getInitials(alum.name)}
+    </div>
+  );
+};
 
 const DetailPage: React.FC = () => {
   const { id } = useParams<{ id: string }>();
@@ -153,7 +224,7 @@ const DetailPage: React.FC = () => {
               {categoryAlumni.map((alum) => (
                 <div key={alum.id} className="bg-white border border-gray-200 rounded-xl p-6 hover:shadow-md transition-all group flex flex-col items-center text-center">
                   <div className="w-24 h-24 mb-4 rounded-full overflow-hidden border-4 border-gray-50 group-hover:border-[#f68d1e]/20 bg-gray-100 flex items-center justify-center">
-                    {alum.imageUrl ? <img src={alum.imageUrl} alt={alum.name} className="w-full h-full object-cover" /> : <User className="w-10 h-10 text-gray-400" />}
+                    <AlumniAvatar alum={alum} />
                   </div>
                   <h3 className="text-lg font-bold text-[#414141] mb-1">{alum.name}</h3>
                   <p className="text-[#f68d1e] font-medium text-sm mb-1">{alum.designation}</p>
