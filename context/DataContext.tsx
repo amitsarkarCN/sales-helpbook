@@ -24,10 +24,12 @@ const INITIAL_CERTIFICATES: Certificate[] = [];
 interface DataContextType {
   brochures: Brochure[];
   addBrochure: (brochure: Omit<Brochure, 'id'>) => void;
+  updateBrochure: (id: string, brochure: Omit<Brochure, 'id'>) => void;
   deleteBrochure: (id: string) => void;
   
   certificates: Certificate[];
   addCertificate: (certificate: Omit<Certificate, 'id'>) => void;
+  updateCertificate: (id: string, certificate: Omit<Certificate, 'id'>) => void;
   deleteCertificate: (id: string) => void;
 
   faqs: FAQ[];
@@ -37,10 +39,12 @@ interface DataContextType {
 
   alumni: Alumni[];
   addAlumni: (alumni: Omit<Alumni, 'id'>) => void;
+  updateAlumni: (id: string, alumni: Omit<Alumni, 'id'>) => void;
   deleteAlumni: (id: string) => void;
 
   testimonials: Testimonial[];
   addTestimonial: (testimonial: Omit<Testimonial, 'id'>) => void;
+  updateTestimonial: (id: string, testimonial: Omit<Testimonial, 'id'>) => void;
   deleteTestimonial: (id: string) => void;
 
   testimonialPosts: TestimonialPost[];
@@ -70,10 +74,12 @@ interface DataContextType {
 
   emiPlans: EMIPlan[];
   addEMIPlan: (plan: Omit<EMIPlan, 'id'>) => void;
+  updateEMIPlan: (id: string, plan: Omit<EMIPlan, 'id'>) => void;
   deleteEMIPlan: (id: string) => void;
 
   handbookItems: HandbookItem[];
   addHandbookItem: (item: Omit<HandbookItem, 'id'>) => void;
+  updateHandbookItem: (id: string, item: Omit<HandbookItem, 'id'>) => void;
   deleteHandbookItem: (id: string) => void;
   
   loading: boolean;
@@ -179,10 +185,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       brochures, 
       addBrochure: (item) => addToCollection('brochures', item),
+      updateBrochure: (id, item) => updateInCollection('brochures', id, item),
       deleteBrochure: (id) => deleteFromCollection('brochures', id),
 
       certificates,
       addCertificate: (item) => addToCollection('certificates', item),
+      updateCertificate: (id, item) => updateInCollection('certificates', id, item),
       deleteCertificate: (id) => deleteFromCollection('certificates', id),
 
       faqs,
@@ -192,10 +200,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       alumni,
       addAlumni: (item) => addToCollection('alumni', item),
+      updateAlumni: (id, item) => updateInCollection('alumni', id, item),
       deleteAlumni: (id) => deleteFromCollection('alumni', id),
 
       testimonials,
       addTestimonial: (item) => addToCollection('testimonials', item),
+      updateTestimonial: (id, item) => updateInCollection('testimonials', id, item),
       deleteTestimonial: (id) => deleteFromCollection('testimonials', id),
 
       testimonialPosts,
@@ -225,10 +235,12 @@ export const DataProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
       emiPlans,
       addEMIPlan: (item) => addToCollection('emi', item),
+      updateEMIPlan: (id, item) => updateInCollection('emi', id, item),
       deleteEMIPlan: (id) => deleteFromCollection('emi', id),
 
       handbookItems,
       addHandbookItem: (item) => addToCollection('handbook', item),
+      updateHandbookItem: (id, item) => updateInCollection('handbook', id, item),
       deleteHandbookItem: (id) => deleteFromCollection('handbook', id),
     }}>
       {children}

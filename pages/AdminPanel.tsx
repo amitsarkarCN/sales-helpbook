@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import Header from '../components/Header';
 import { useData } from '../context/DataContext';
 import { BROCHURE_SUBCATEGORIES, FAQ_CATEGORIES, ALUMNI_CATEGORIES } from '../constants';
-import { BrochureSubCategory, AlumniCategory, EMIPlanSubCategory } from '../types';
+import { BrochureSubCategory, AlumniCategory, EMIPlanSubCategory, Alumni, EMIPlan, Brochure, Certificate, Testimonial } from '../types';
 import { Trash2, Plus, FileText, ExternalLink, Lock, AlertCircle, Award, HelpCircle, Edit2, Users, Video, BarChart3, Link, MessageSquare, FolderKanban, CreditCard, GraduationCap, Loader2, Share2, Sparkles, Image as ImageIcon, CheckCircle2 } from 'lucide-react';
 import { auth } from '../firebase';
 import { signInWithEmailAndPassword, signOut, onAuthStateChanged, User } from 'firebase/auth';
@@ -11,18 +11,18 @@ import { GoogleGenAI, Type } from "@google/genai";
 const AdminPanel: React.FC = () => {
   const { 
     loading: dataLoading,
-    brochures, addBrochure, deleteBrochure,
-    certificates, addCertificate, deleteCertificate,
+    brochures, addBrochure, updateBrochure, deleteBrochure,
+    certificates, addCertificate, updateCertificate, deleteCertificate,
     faqs, addFaq, updateFaq, deleteFaq,
-    alumni, addAlumni, deleteAlumni,
-    testimonials, addTestimonial, deleteTestimonial,
+    alumni, addAlumni, updateAlumni, deleteAlumni,
+    testimonials, addTestimonial, updateTestimonial, deleteTestimonial,
     testimonialPosts, addTestimonialPost, updateTestimonialPost, deleteTestimonialPost,
     competitors, addCompetitor, updateCompetitor, deleteCompetitor,
     importantLinks, addImportantLink, updateImportantLink, deleteImportantLink,
     salesScripts, addSalesScript, updateSalesScript, deleteSalesScript,
     projects, addProject, updateProject, deleteProject,
-    emiPlans, addEMIPlan, deleteEMIPlan,
-    handbookItems, addHandbookItem, deleteHandbookItem
+    emiPlans, addEMIPlan, updateEMIPlan, deleteEMIPlan,
+    handbookItems, addHandbookItem, updateHandbookItem, deleteHandbookItem
   } = useData();
   
   // Auth State
@@ -197,11 +197,23 @@ const AdminPanel: React.FC = () => {
     if (!title) return;
     
     if (activeTab === 'brochures') {
-      addBrochure({ title, url, subCategory: subCategory as BrochureSubCategory });
+      if (editingId) {
+        updateBrochure(editingId, { title, url, subCategory: subCategory as BrochureSubCategory });
+      } else {
+        addBrochure({ title, url, subCategory: subCategory as BrochureSubCategory });
+      }
     } else if (activeTab === 'certificates') {
-      addCertificate({ title, url, subCategory: subCategory as BrochureSubCategory });
+      if (editingId) {
+        updateCertificate(editingId, { title, url, subCategory: subCategory as BrochureSubCategory });
+      } else {
+        addCertificate({ title, url, subCategory: subCategory as BrochureSubCategory });
+      }
     } else if (activeTab === 'emi') {
-      addEMIPlan({ title, url, subCategory: subCategory as EMIPlanSubCategory });
+      if (editingId) {
+        updateEMIPlan(editingId, { title, url, subCategory: subCategory as EMIPlanSubCategory });
+      } else {
+        addEMIPlan({ title, url, subCategory: subCategory as EMIPlanSubCategory });
+      }
     } else if (activeTab === 'faqs') {
       if (editingId) {
         updateFaq(editingId, { question: title, answer: url, category: subCategory });
@@ -209,22 +221,43 @@ const AdminPanel: React.FC = () => {
         addFaq({ question: title, answer: url, category: subCategory });
       }
     } else if (activeTab === 'alumni') {
-      addAlumni({
-        name: title,
-        linkedinProfile: url,
-        currentCompany: company,
-        designation: designation,
-        imageUrl: imageUrl,
-        category: alumniCategory,
-        ctc: ctc,
-        year: year
-      });
+      if (editingId) {
+        updateAlumni(editingId, {
+          name: title,
+          linkedinProfile: url,
+          currentCompany: company,
+          designation: designation,
+          imageUrl: imageUrl,
+          category: alumniCategory,
+          ctc: ctc,
+          year: year
+        });
+      } else {
+        addAlumni({
+          name: title,
+          linkedinProfile: url,
+          currentCompany: company,
+          designation: designation,
+          imageUrl: imageUrl,
+          category: alumniCategory,
+          ctc: ctc,
+          year: year
+        });
+      }
     } else if (activeTab === 'testimonials') {
-      addTestimonial({
-        name: title,
-        videoUrl: url,
-        details: details
-      });
+      if (editingId) {
+        updateTestimonial(editingId, {
+          name: title,
+          videoUrl: url,
+          details: details
+        });
+      } else {
+        addTestimonial({
+          name: title,
+          videoUrl: url,
+          details: details
+        });
+      }
     } else if (activeTab === 'testimonialPosts') {
       if (editingId) {
         updateTestimonialPost(editingId, { title, url, imageUrl });
@@ -256,7 +289,11 @@ const AdminPanel: React.FC = () => {
         addProject({ title, url });
       }
     } else if (activeTab === 'handbook') {
-      addHandbookItem({ title, url });
+      if (editingId) {
+        updateHandbookItem(editingId, { title, url });
+      } else {
+        addHandbookItem({ title, url });
+      }
     }
     
     resetForm();
@@ -275,6 +312,44 @@ const AdminPanel: React.FC = () => {
     setTitle(t);
     setUrl(u);
     if (img) setImageUrl(img);
+    else setImageUrl('');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const startEditAlumni = (item: Alumni) => {
+    setEditingId(item.id);
+    setTitle(item.name);
+    setUrl(item.linkedinProfile || '');
+    setCompany(item.currentCompany || '');
+    setDesignation(item.designation || '');
+    setImageUrl(item.imageUrl || '');
+    setAlumniCategory(item.category || 'Software Development');
+    setCtc(item.ctc || '');
+    setYear(item.year || '');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const startEditEmiPlan = (item: EMIPlan) => {
+    setEditingId(item.id);
+    setTitle(item.title);
+    setUrl(item.url);
+    setSubCategory(item.subCategory || 'Job Bootcamp');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const startEditBrochureOrCert = (item: Brochure | Certificate) => {
+    setEditingId(item.id);
+    setTitle(item.title);
+    setUrl(item.url);
+    setSubCategory(item.subCategory || 'Job Bootcamp');
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  const startEditTestimonial = (item: Testimonial) => {
+    setEditingId(item.id);
+    setTitle(item.name);
+    setUrl(item.videoUrl);
+    setDetails(item.details || '');
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
@@ -702,18 +777,21 @@ const AdminPanel: React.FC = () => {
                       </div>
                       
                       <div className="flex items-center gap-1">
-                        {(activeTab === 'faqs' || isSimpleItemTab) && (
-                          <button
-                            onClick={() => {
-                              if (activeTab === 'faqs') startEditFaq(item.id, item.question, item.answer, item.category);
-                              else if (activeTab === 'testimonialPosts') startEditItem(item.id, item.title, item.url, item.imageUrl);
-                              else startEditItem(item.id, item.title, item.url);
-                            }}
-                            className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
-                          >
-                            <Edit2 className="w-4 h-4" />
-                          </button>
-                        )}
+                        <button
+                          onClick={() => {
+                            if (activeTab === 'faqs') startEditFaq(item.id, item.question, item.answer, item.category);
+                            else if (activeTab === 'alumni') startEditAlumni(item as Alumni);
+                            else if (activeTab === 'emi') startEditEmiPlan(item as EMIPlan);
+                            else if (activeTab === 'brochures' || activeTab === 'certificates') startEditBrochureOrCert(item as Brochure);
+                            else if (activeTab === 'testimonials') startEditTestimonial(item as Testimonial);
+                            else if (activeTab === 'testimonialPosts') startEditItem(item.id, item.title, item.url, item.imageUrl);
+                            else startEditItem(item.id, item.title, item.url);
+                          }}
+                          className="p-2 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                          title="Edit"
+                        >
+                          <Edit2 className="w-4 h-4" />
+                        </button>
                         <button
                           onClick={() => {
                              if (activeTab === 'brochures') deleteBrochure(item.id);
